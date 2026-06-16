@@ -1,0 +1,30 @@
+# Claude Code local config / skills (not part of the project)
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Environment & secrets
+.env
+
+# Runtime data
+data/memory_store.json
+data/conversations/
+
+# 学生通过 /api/upload 上传的文档不纳入版本控制（保留种子语料与占位）
+data/docs/*
+!data/docs/.gitkeep
+!data/docs/知简-产品概览.md
+!data/docs/知简-价格与套餐.md
+!data/docs/知简-功能与快捷键.md
+!data/docs/知简-客服与隐私.md
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
