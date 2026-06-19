@@ -7,10 +7,10 @@ from memory.conversation_store import ConversationStore
 def test_baseline_capabilities():
     agent = build_agent("test-session")
     names = agent.registry.available_names()
-    # 基线：两个范例工具可用；未实现的工具被隐藏
+    # 基线：两个范例工具和已完成的 web_search 可用；未实现的工具被隐藏
     assert "get_weather" in names
     assert "calculator" in names
-    assert "web_search" not in names
+    assert "web_search" in names
     assert "knowledge_base" not in names
     # 长期记忆默认关闭 -> NoOp
     assert isinstance(agent.long_term, NoOpLongTermMemory)
