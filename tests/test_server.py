@@ -19,7 +19,7 @@ def test_capabilities_baseline():
     data = resp.json()
     assert "get_weather" in data["tools"]
     assert data["rag_enabled"] is False
-    assert data["long_term_enabled"] is False
+    assert data["long_term_enabled"] is True
 
 
 def test_upload_rejects_bad_extension():

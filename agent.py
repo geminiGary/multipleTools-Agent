@@ -11,6 +11,8 @@ chat_stream() 是一个生成器，按顺序产出事件：
 """
 import json
 
+from memory.base import NoOpLongTermMemory
+
 # 工具调用最大轮次：防止工具/模型异常导致无限循环
 MAX_TOOL_ROUNDS = 10
 
@@ -26,10 +28,21 @@ class Agent:
         self.short_term.add("user", user_msg)
 
         messages = self.short_term.get_context()
+        insert_at = 1
+        if not isinstance(self.long_term, NoOpLongTermMemory):
+            messages.insert(insert_at, {
+                "role": "system",
+                "content": (
+                    "你有一个后台长期记忆模块。用户表达稳定事实或偏好、"
+                    "或明确要求记住个人信息时，简短确认即可；系统会在本轮回复后自动保存。"
+                ),
+            })
+            insert_at += 1
+
         facts = self.long_term.recall(user_msg)
         if facts:
             fact_text = "已知用户信息：\n" + "\n".join(f"- {f}" for f in facts)
-            messages.insert(1, {"role": "system", "content": fact_text})
+            messages.insert(insert_at, {"role": "system", "content": fact_text})
 
         turn_sources: list = []
         final_text = ""

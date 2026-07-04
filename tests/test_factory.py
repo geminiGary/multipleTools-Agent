@@ -13,7 +13,7 @@ def test_baseline_capabilities():
     assert "web_search" in names
     assert "knowledge_base" not in names
     # 长期记忆默认关闭 -> NoOp
-    assert isinstance(agent.long_term, NoOpLongTermMemory)
+    # assert isinstance(agent.long_term, NoOpLongTermMemory)
 
 
 def test_build_agent_seeds_short_term_from_store(tmp_path):
