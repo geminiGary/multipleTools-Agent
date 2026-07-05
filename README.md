@@ -1,99 +1,171 @@
-# 智能多工具助手（作业项目）
+# 智能多工具助手
 
-一个基于大模型 API 的多工具助手智能体。老师提供可运行的引擎与两个完整范例，
-你需要**模仿范例**补全其它能力模块。
+智能多工具助手是一个基于 OpenAI 兼容模型 API 的多工具智能体项目。它把大模型对话、function calling、工具注册、短期记忆、长期记忆、本地知识库检索和网页端会话管理整合在一起，适合用于构建个人助理、知识库问答助手或可扩展的智能体原型。
 
-> 第一次上手，先看带思路引导和自检步骤的教程 [`docs/任务指导.md`](docs/任务指导.md)。本 README 作为速查手册。
+项目提供命令行和 Web 两种使用方式。Web 端支持多会话管理、流式回复、工具调用过程展示、引用来源展示、长期记忆查看和本地文档上传。
+
+## 功能特性
+
+- **流式智能体对话**：`agent.py` 负责主循环，按事件流输出 token、工具调用、引用来源和完成状态。
+- **OpenAI 兼容模型接入**：`llm.py` 封装聊天、流式响应和 embedding 能力，可对接 OpenAI 或兼容服务。
+- **可扩展工具系统**：`tools/registry.py` 统一注册和分发工具，当前内置天气查询、计算器、网络搜索和本地知识库检索。
+- **网络搜索工具**：`tools/web_search.py` 支持博查 Web Search API；未配置 API Key 或请求失败时会回退到示例结果，保证流程可用。
+- **本地知识库 RAG**：`rag/` 负责文档切块、向量入库和相似度检索；`tools/knowledge_base.py` 将检索能力包装为模型工具，并在回答中返回来源。
+- **记忆系统**：短期记忆会压缩较早对话，长期记忆会把用户稳定事实和偏好持久化到 `data/memory_store.json`，并支持更新和删除记忆。
+- **多会话持久化**：`memory/conversation_store.py` 将会话记录保存到 `data/conversations/`，服务重启后仍可恢复历史上下文。
+- **Web 管理界面**：`frontend/index.html` 提供三栏界面，包括会话列表、对话区和工具/来源/记忆仪表栏。
+- **优雅降级**：单个工具异常、embedding 服务不可用或搜索接口未配置时，项目会尽量使用本地兜底逻辑保持主流程可运行。
+
+## 技术栈
+
+- Python 3.10+
+- FastAPI / Uvicorn
+- OpenAI Python SDK
+- NumPy
+- 原生 HTML / CSS / JavaScript
+- Pytest
+
+## 项目结构
+
+```text
+.
+├── agent.py                  # 智能体主循环与事件流
+├── factory.py                # 组装 LLM、工具、记忆和 Agent
+├── llm.py                    # OpenAI 兼容模型客户端
+├── main.py                   # 命令行入口
+├── server.py                 # FastAPI 后端与静态前端托管
+├── config.py                 # 环境变量读取
+├── frontend/
+│   └── index.html            # Web 对话界面
+├── tools/                    # 工具定义、注册和调度
+├── memory/                   # 短期记忆、长期记忆、会话持久化
+├── rag/                      # 文档切块、向量库与检索入库
+├── data/
+│   ├── docs/                 # 本地知识库种子文档
+│   ├── conversations/        # 多会话历史
+│   └── memory_store.json     # 长期记忆数据
+└── tests/                    # 单元测试
+```
 
 ## 快速开始
 
-### 环境要求
-
-- Python 3.10+
-- 任意 OpenAI 兼容的大模型服务（key / base_url / 模型名）
-
-### 安装与配置
+### 1. 安装依赖
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env   # 填入 OpenAI 兼容服务的 key / base_url / 模型名
 ```
 
-### 两种运行方式
+### 2. 配置环境变量
 
-**命令行对话**（最快验证，单条会话、历史不落盘）：
+复制 `.env.example` 为 `.env`，并填写你的模型服务配置：
+
+```bash
+cp .env.example .env
+```
+
+核心配置项如下：
+
+```env
+OPENAI_API_KEY=sk-xxxx
+OPENAI_BASE_URL=https://api.openai.com/v1
+CHAT_MODEL=gpt-4o-mini
+EMBEDDING_MODEL=text-embedding-3-small
+LOCAL_EMBEDDING_FALLBACK=true
+
+WEB_SEARCH_API_KEY=
+WEB_SEARCH_ENDPOINT=https://api.bochaai.com/v1/web-search
+USER_ID=local
+```
+
+`WEB_SEARCH_API_KEY` 是可选项。未配置时，网络搜索工具会返回示例结果；embedding 服务不可用且 `LOCAL_EMBEDDING_FALLBACK=true` 时，系统会使用本地轻量哈希向量作为兜底。
+
+## 运行方式
+
+### 命令行模式
 
 ```bash
 python main.py
 ```
 
-**后端服务 + 网页界面**（推荐，支持多会话与历史持久化）：
+命令行模式适合快速验证模型接入、工具调用和本地知识库检索流程。
+
+### Web 服务模式
 
 ```bash
 uvicorn server:app --reload
 ```
 
-启动后浏览器打开 **http://localhost:8000**（`server.py` 已托管 `frontend/index.html`）。界面分三栏：
+启动后打开：
 
-- **左侧会话栏**：新建 / 切换 / 重命名 / 删除多个对话。每条对话的历史会自动落盘到 `data/conversations/`，**重启服务后仍在**。
-- **中间对话区**：与助手流式对话。
-- **右侧仪表栏**：实时显示助手调用了哪个工具、引用了哪些来源、跨对话记住了你什么，也能看到已启用哪些能力模块。
+```text
+http://localhost:8000
+```
 
-> 也可直接双击打开 `frontend/index.html`，在界面右上角把「后端」地址指向你的服务即可（后端已开启 CORS）。
+Web 界面支持新建、切换、重命名和删除会话。每轮对话会自动保存到 `data/conversations/`，长期记忆会保存到 `data/memory_store.json`。
 
-未填 key 也能跑测试：`pytest -v`
+## 本地知识库
 
-## 你会学到
+服务启动时会自动读取 `data/docs/` 下的 `.md` 和 `.txt` 文件，切块后写入内存向量库。Web 界面也支持上传 `.md` / `.txt` 文档，上传成功后会立即入库。
 
-- 工具调用（function calling）
-- 短期记忆与长期记忆
-- 检索增强生成（RAG，进阶可选）
+当用户问题命中本地文档、知识库、知简笔记、价格套餐、快捷键、隐私、导入、退款等语义时，Agent 会优先检索知识库，并要求模型只依据检索结果作答。若知识库没有可回答依据，系统会直接说明“知识库未提及”，避免编造答案。
 
-## 架构
+## 内置工具
 
-- `llm.py` 模型客户端 / `agent.py` 主循环（事件流）/ `server.py` SSE 接口与会话管理 —— 已提供，无需改动。
-- `tools/` 工具（`Tool` 接口）/ `rag/` 检索 / `memory/` 记忆。
-- **对话持久化与多会话**：`memory/conversation_store.py` 把每条对话落盘为 `data/conversations/<id>.json`，服务端提供 `GET /api/conversations`、`GET / PATCH / DELETE /api/conversations/{id}` 等接口。这部分是已做好的基础设施，**你只需专注实现长期记忆**。
-- **优雅降级**：未实现的模块会被自动隐藏，整体仍能正常对话。运行时可通过 `GET /api/capabilities` 或 CLI 启动行查看已启用能力。
+| 工具 | 文件 | 说明 |
+|---|---|---|
+| 天气查询 | `tools/weather.py` | 使用内置示例数据返回城市天气 |
+| 计算器 | `tools/calculator.py` | 基于 AST 白名单安全计算数学表达式 |
+| 网络搜索 | `tools/web_search.py` | 调用博查 Web Search API，支持示例结果兜底 |
+| 本地知识库 | `tools/knowledge_base.py` | 检索本地 RAG 向量库并返回来源 |
 
-## 范例
+新增工具时，继承 `tools.base.Tool`，实现 `name`、`description`、`parameters` 和 `run()`，再在 `factory.py` 中注册即可。
 
-- `tools/weather.py`、`tools/calculator.py`：一个工具从定义到被调用的完整流程。
-- `tests/test_weather.py` 是工具测试的范例。
-- `memory/short_term.py`：一个记忆模块的完整范例。
+## API 概览
 
-## 你的任务（两个主任务，互不阻塞，做完即见效）
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| `POST` | `/api/chat` | 发送消息并以 SSE 返回事件流 |
+| `POST` | `/api/upload` | 上传 `.md` / `.txt` 文档到知识库 |
+| `GET` | `/api/memory/{session_id}` | 查看长期记忆事实 |
+| `POST` | `/api/reset/{session_id}` | 清空指定会话 |
+| `GET` | `/api/capabilities` | 查看当前启用的工具和能力 |
+| `GET` | `/api/conversations` | 获取会话列表 |
+| `GET` | `/api/conversations/{session_id}` | 获取指定会话内容 |
+| `PATCH` | `/api/conversations/{session_id}` | 重命名指定会话 |
+| `DELETE` | `/api/conversations/{session_id}` | 删除指定会话 |
 
-| # | 文件 | 做什么 | 启用方式 |
-|---|---|---|---|
-| 1 | `tools/web_search.py` | 实现 `run()` | 把 `is_available()` 改为 `True` |
-| 2 | `memory/long_term.py` | 实现长期记忆 | 把模块里的 `ENABLED` 改为 `True` |
+`/api/chat` 的 SSE 事件类型包括：
 
-> RAG（本地知识库检索）作为进阶可选，见下方「进阶」。
+- `tool_call`：模型调用工具
+- `token`：助手回复文本增量
+- `sources`：RAG 或搜索工具返回的引用来源
+- `done`：本轮回复结束
+- `error`：服务端流式处理异常
 
-每实现一个模块，照着 `tests/test_weather.py` / `tests/test_short_term.py` 为它补测试。
+## 测试
 
-> 小贴士：
-> - 骨架文件里有一些「未使用的 import」（如 `numpy`、`STORE`、`json`）是**故意预置**的，你填完 TODO 就会用到，不是框架问题。
-> - **长期记忆是全局的**：所有对话窗口共享一份「用户记忆」，按固定的 `user_id` 落盘到 `data/memory_store.json`（构造参数已是 `user_id`，与每个窗口的 `session_id` 分开）。所以在一个窗口告诉助手「我叫小明」，换个窗口它也能想起来——这正是任务 2 做完后的效果。
+未配置模型 API Key 时也可以运行大部分单元测试：
 
-## 评分
+```bash
+pytest -v
+```
 
-总分 100 分。每项「怎么算拿到分」的判定细则见 [`docs/任务指导.md`](docs/任务指导.md) 第 9 节。
+测试覆盖智能体事件流、工具注册、计算器、网络搜索、知识库、短期记忆、长期记忆、会话持久化和后端接口等核心模块。
 
-| 模块 | 分值 |
-|---|---|
-| 任务 1 · 工具调用 `web_search` | 30 |
-| 任务 2 · 长期记忆 | 50 |
-| 进阶 · RAG（本地知识库检索） | 10 |
-| 其余各类优化 | 10 |
+## 数据与隐私
 
-提交两部分：**代码源码**（不含模型，如 RAG 的 embedding 权重）和**大作业报告**（含各任务执行截图，做了优化还要有优化介绍）。详见任务指导第 10 节。
+项目默认把会话和长期记忆保存在本地 `data/` 目录下：
 
-## 进阶
+- `data/conversations/`：多会话聊天记录和短期记忆快照
+- `data/memory_store.json`：按 `USER_ID` 保存的长期记忆
+- `data/docs/`：本地知识库文档
 
-- **RAG（本地知识库检索）**：完整的进阶任务。仓库保留了 `rag/` 与 `tools/knowledge_base.py` 骨架、`data/docs/` 语料、[`docs/rag-verification.md`](docs/rag-verification.md) 验收清单；实现思路留给你自行探索。
-- 长期记忆改用向量召回。
-- RAG 做完后可再加重排序（rerank）或多路召回。
-- 工具调用失败自动重试；ReAct 反思自纠。
-- 真实网络搜索 API 接入。
+这些文件不会自动上传到外部服务。模型 API、搜索 API 和远程 embedding 服务的请求内容取决于你在 `.env` 中配置的服务提供方。
+
+## 后续扩展方向
+
+- 接入更多真实工具，例如日历、邮件、数据库查询或代码执行沙箱。
+- 将 RAG 向量库替换为持久化向量数据库。
+- 为搜索结果和知识库检索增加更强的 rerank 策略。
+- 增加用户认证和多用户隔离。
+- 将前端拆分为独立框架项目，增强可维护性和交互体验。
