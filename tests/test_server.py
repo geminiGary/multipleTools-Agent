@@ -1,8 +1,4 @@
-"""服务端端点测试：用 FastAPI TestClient，不需要 API key。
-
-with TestClient(app) 会触发 lifespan 启动钩子——也顺便验证了
-RAG 未实现时种子文档入库会被优雅跳过、不会让服务崩溃。
-"""
+"""服务端端点测试：用 FastAPI TestClient，不需要 API key。"""
 from fastapi.testclient import TestClient
 
 import server
@@ -18,7 +14,8 @@ def test_capabilities_baseline():
     assert resp.status_code == 200
     data = resp.json()
     assert "get_weather" in data["tools"]
-    assert data["rag_enabled"] is False
+    assert "knowledge_base" in data["tools"]
+    assert data["rag_enabled"] is True
     assert data["long_term_enabled"] is True
 
 

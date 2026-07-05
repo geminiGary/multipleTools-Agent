@@ -15,6 +15,34 @@ from memory.base import NoOpLongTermMemory
 
 # 工具调用最大轮次：防止工具/模型异常导致无限循环
 MAX_TOOL_ROUNDS = 10
+KNOWLEDGE_BASE_HINTS = (
+    "知简",
+    "知识库",
+    "本地文档",
+    "文档里",
+    "资料里",
+    "调用rag",
+    "rag",
+    "专业版",
+    "免费版",
+    "团队版",
+    "全局搜索",
+    "快捷键",
+    "版本历史",
+    "历史记录",
+    "导入",
+    "退款",
+    "最新版本",
+    "版本号",
+    "同步",
+    "隐私",
+    "训练",
+    "华东节点",
+    "客服",
+    "创始人",
+    "总部",
+    "印象笔记",
+)
 
 
 class Agent:
@@ -45,10 +73,38 @@ class Agent:
             messages.insert(insert_at, {"role": "system", "content": fact_text})
 
         turn_sources: list = []
+        knowledge_context = self._prefetch_knowledge_base(user_msg)
+        tools_for_model = self.registry.schemas()
+        if knowledge_context is not None:
+            yield {"type": "tool_call", "name": "knowledge_base", "arguments": {"query": user_msg}}
+            turn_sources.extend(knowledge_context["sources"])
+            tools_for_model = [
+                schema for schema in tools_for_model
+                if schema["function"]["name"] != "knowledge_base"
+            ]
+            if knowledge_context["unanswered"]:
+                final_text = f"知识库未提及“{user_msg}”的答案，因此我不能根据文档回答这个问题。"
+                yield {"type": "token", "delta": final_text}
+                self.short_term.add("assistant", final_text)
+                self.long_term.remember(user_msg, final_text)
+                yield {"type": "done"}
+                return
+            messages.insert(insert_at, {
+                "role": "system",
+                "content": (
+                    "本轮已经预先检索本地知识库。对于与知简、本地文档或知识库有关的问题，"
+                    "下面检索结果的优先级高于早先对话摘要、长期记忆和模型常识。"
+                    "只能依据检索结果回答；如果检索结果说知识库未提及，必须直接说明未提及，"
+                    "不得猜测、不得沿用早先错误回答、不得改用网络搜索补充。\n\n"
+                    + knowledge_context["result"]
+                ),
+            })
+            insert_at += 1
+
         final_text = ""
         text = ""
         for _round in range(MAX_TOOL_ROUNDS):
-            text, tool_calls = yield from self._run_turn(messages)
+            text, tool_calls = yield from self._run_turn(messages, tools_for_model)
             if not tool_calls:
                 final_text = text
                 break
@@ -88,7 +144,25 @@ class Agent:
         self.long_term.remember(user_msg, final_text)
         yield {"type": "done"}
 
-    def _run_turn(self, messages):
+    def _prefetch_knowledge_base(self, user_msg: str) -> dict | None:
+        if not self._should_prefetch_knowledge_base(user_msg):
+            return None
+        tool = self.registry.get("knowledge_base")
+        if tool is None or not tool.is_available():
+            return None
+        tool.last_sources = []
+        result = self.registry.dispatch("knowledge_base", {"query": user_msg})
+        return {
+            "result": result,
+            "sources": getattr(tool, "last_sources", []) or [],
+            "unanswered": result.startswith("【本地知识库检索结果：未找到可回答依据】"),
+        }
+
+    def _should_prefetch_knowledge_base(self, user_msg: str) -> bool:
+        text = (user_msg or "").lower()
+        return any(hint.lower() in text for hint in KNOWLEDGE_BASE_HINTS)
+
+    def _run_turn(self, messages, tools=None):
         """流式跑一个回合：把文本增量转成 token 事件 yield 出去，
         返回 (完整文本, 工具调用列表)。
 
@@ -96,7 +170,7 @@ class Agent:
         丢弃生成器的 return 值；我们需要用 StopIteration.value 取回工具调用列表。
         """
         chunks: list[str] = []
-        gen = self.llm.stream_turn(messages, self.registry.schemas())
+        gen = self.llm.stream_turn(messages, self.registry.schemas() if tools is None else tools)
         tool_calls: list = []
         try:
             while True:

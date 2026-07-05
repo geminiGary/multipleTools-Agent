@@ -8,6 +8,11 @@ API_KEY = os.getenv("OPENAI_API_KEY", "")
 BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
 CHAT_MODEL = os.getenv("CHAT_MODEL", "gpt-4o-mini")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
+LOCAL_EMBEDDING_FALLBACK = os.getenv("LOCAL_EMBEDDING_FALLBACK", "true").lower() not in {
+    "0",
+    "false",
+    "no",
+}
 
 BOCHA_SEARCH_API_KEY = os.getenv("WEB_SEARCH_API_KEY", "")
 BOCHA_SEARCH_ENDPOINT = os.getenv(

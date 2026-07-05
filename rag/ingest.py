@@ -33,9 +33,12 @@ def ingest_file(path: str) -> int:
     4. STORE.add(chunks, embeddings, metadatas=[{"doc": path} ...])。
     5. 返回块数。
     """
+    path = str(path)
     with open(path, "r", encoding="utf-8") as f:
         text = f.read()
     chunks = chunk_text(text)
+    if not chunks:
+        return 0
     embeddings = _llm.embed(chunks)
     metadatas = [{"doc": path} for _ in chunks]
     STORE.add(chunks, embeddings, metadatas)
@@ -51,8 +54,9 @@ def ingest_dir(dir_path: str = "data/docs") -> int:
     total_chunks = 0
     root = Path(dir_path)
     if not root.exists() or not root.is_dir():
-        raise ValueError(f"Directory {dir_path} does not exist or is not a directory")
+        return 0
+    STORE.clear()
     for filename in root.iterdir():
-        if filename.is_file() and filename.suffix in (".md", ".txt"):
+        if filename.is_file() and filename.suffix.lower() in (".md", ".txt"):
             total_chunks += ingest_file(filename)
     return total_chunks

@@ -92,12 +92,13 @@ class FileLongTermMemory(LongTermMemory):
                         "role": "system",
                         "content": (
                             "你负责抽取用户的长期记忆。"
-                            "只提取稳定事实或偏好，例如姓名、专业、长期喜好、常用要求。"
-                            "不要提取临时问题、一次性任务、寒暄、助手自己的内容。"
+                            "只根据用户原话提取稳定事实或偏好，例如姓名、专业、长期喜好、常用要求。"
+                            "不要提取临时问题、一次性任务、寒暄、用户问过什么、比较过什么、助手自己的内容或助手推断。"
+                            "如果用户只是提问，例如询问产品创始人、价格、对比、搜索资料，不要记录。"
                             "只返回 JSON 数组，例如 [\"用户叫小明\"]；没有则返回 []。"
                         ),
                     },
-                    {"role": "user", "content": f"用户说: {user_msg}\n助手说: {reply}"},
+                    {"role": "user", "content": f"用户说: {user_msg}"},
                 ],
             )
         except Exception as e:
@@ -132,6 +133,8 @@ class FileLongTermMemory(LongTermMemory):
                 continue
             fact = item.strip()
             if not fact or fact.lower() in empty_words:
+                continue
+            if any(bad in fact for bad in ("用户询问", "用户问过", "用户比较", "助手", "知简笔记的创始人")):
                 continue
             if fact not in existing:
                 self.facts.append(fact)

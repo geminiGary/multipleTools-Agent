@@ -21,6 +21,12 @@ class VectorStore:
     def __len__(self) -> int:
         return len(self.texts)
 
+    def clear(self) -> None:
+        """清空内存库，便于服务重启或测试时重新入库。"""
+        self.texts.clear()
+        self.embeddings.clear()
+        self.metadatas.clear()
+
     def add(self, texts: list[str], embeddings: list[list[float]], metadatas: list[dict] | None = None) -> None:
         """把若干文本块及其向量加入库中。
 
@@ -28,7 +34,7 @@ class VectorStore:
         metadatas 为 None 时用空 dict 占位，长度需与 texts 对齐。
         """
         if metadatas is None:
-            metadatas = [{}] * len(texts)
+            metadatas = [{} for _ in texts]
         if len(texts) != len(embeddings) or len(texts) != len(metadatas):
             raise ValueError("texts, embeddings, metadatas must have the same length")
         self.texts.extend(texts)
@@ -50,13 +56,13 @@ class VectorStore:
         if not self.texts:
             return []
 
-        query_embedding = np.array(query_embedding)
-        embeddings = np.array(self.embeddings)
+        query_embedding = np.array(query_embedding, dtype=float)
+        embeddings = np.array(self.embeddings, dtype=float)
 
         # 计算余弦相似度
         dot_product = np.dot(embeddings, query_embedding)
         norms = np.linalg.norm(embeddings, axis=1) * np.linalg.norm(query_embedding)
-        similarities = dot_product / norms
+        similarities = dot_product / (norms + 1e-8)
 
         # 获取 top_k 个最相似的索引
         top_k_indices = np.argsort(similarities)[::-1][:top_k]
