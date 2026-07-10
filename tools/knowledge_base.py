@@ -1,7 +1,7 @@
-"""【学生任务】RAG 检索工具：把知识库检索包装成一个 Tool。
+"""RAG 检索工具：把本地知识库检索包装成一个 Tool。
 
-完成后把 is_available() 改成返回 True（或按库是否非空判断），
-该工具就会出现在模型可用工具列表里，实现优雅降级。
+当内存向量库已入库时，该工具会出现在模型可用工具列表里；
+空库时自动隐藏，实现知识库能力的优雅降级。
 """
 from tools.base import Tool
 from rag.vector_store import STORE
@@ -28,18 +28,13 @@ class KnowledgeBaseTool(Tool):
         self._llm = LLMClient()
 
     def is_available(self) -> bool:
-        # TODO: 实现 run() 后改为 return len(STORE) > 0
         return len(STORE) > 0
 
     def run(self, query: str) -> str:
         """检索知识库并返回拼接好的上下文，同时把来源写入 self.last_sources。
 
-        TODO:
-        1. q_emb = self._llm.embed([query])[0]
-        2. hits = STORE.search(q_emb, top_k=3)
-        3. self.last_sources = [{"doc": h["metadata"].get("doc"),
-                                 "score": h["score"], "snippet": h["text"][:50]} for h in hits]
-        4. 返回把各 hit 文本拼接成的字符串（无结果时返回提示语）。
+        返回内容面向模型阅读，last_sources 面向前端仪表栏展示。
+        无结果或超出知识库范围时返回明确的“知识库未提及”提示，避免模型编造。
         """
         query = query.strip()
         if not query:
@@ -72,7 +67,6 @@ class KnowledgeBaseTool(Tool):
             doc = h["metadata"].get("doc", "未知文档")
             score = h["score"]
             parts.append(f"结果 {i} (文档: {doc}, 相似度: {score:.4f}):\n{h['text']}\n")
-        #raise NotImplementedError("TODO: 实现 RAG 检索")
         return (
             "【本地知识库检索结果】\n"
             "回答规则：只能依据下面资料回答；如果资料没有直接包含答案，必须说“知识库未提及”，"

@@ -1,7 +1,7 @@
-"""【学生任务】网络搜索工具。
+"""网络搜索工具。
 
-教学提示：可以接真实搜索 API，也可以先用 mock 数据跑通流程
-（与 weather.py 同理）。完成 run() 后把 is_available() 改为 True。
+优先调用博查 Web Search API；未配置 API Key 或请求失败时，
+使用内置示例结果兜底，确保智能体主流程可继续运行。
 """
 from config import BOCHA_SEARCH_API_KEY, BOCHA_SEARCH_ENDPOINT
 from tools.base import Tool

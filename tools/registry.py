@@ -1,7 +1,7 @@
 """工具注册表：收集 schema、按名分发，并实现优雅降级。
 
 - schemas()/available_names() 只暴露 is_available() 为真的工具，
-  未实现的骨架工具对模型不可见。
+  不可用工具对模型不可见。
 - dispatch() 兜底捕获异常，单个工具出错不会让整轮对话崩溃。
 """
 from tools.base import Tool

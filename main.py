@@ -7,7 +7,7 @@ from factory import build_agent
 
 def main():
     agent = build_agent("cli")
-    # 把 data/docs 下的种子文档入库；RAG 未实现时静默跳过
+    # 把 data/docs 下的种子文档入库；知识库依赖不可用时静默跳过
     try:
         from rag.ingest import ingest_dir
         ingest_dir()

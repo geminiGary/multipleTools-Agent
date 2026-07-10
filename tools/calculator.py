@@ -1,4 +1,4 @@
-"""范例工具 2：安全的数学表达式求值（用 ast 白名单，避免 eval 风险）。"""
+"""安全的数学表达式求值工具（用 ast 白名单，避免 eval 风险）。"""
 import ast
 import operator
 

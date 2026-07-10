@@ -1,7 +1,6 @@
-"""【学生任务】长期记忆：跨会话记住用户事实/偏好，落盘到 JSON。
+"""长期记忆：跨会话记住用户事实/偏好，落盘到 JSON。
 
 采用"向量召回 + 关键词兜底"策略；同时支持用户主动更新/删除记忆。
-实现完成后把模块级 ENABLED 改为 True，factory 会自动启用它。
 """
 import json
 import math
@@ -11,7 +10,6 @@ import re
 from memory.base import LongTermMemory
 from llm import LLMClient
 
-# 实现完成后改为 True
 ENABLED = True
 RECALL_TOP_K = 8
 MIN_RECALL_SCORE = 0.08
@@ -35,8 +33,6 @@ TOPIC_MARKERS = {
         "后端",
         "前端",
         "产品经理",
-        "学生",
-        "老师",
         "教师",
         "医生",
         "律师",
@@ -70,11 +66,7 @@ class FileLongTermMemory(LongTermMemory):
             return {}
 
     def _load(self) -> list[str]:
-        """从 JSON 文件读取本 user 的事实列表（文件不存在时返回 []）。
-
-        TODO: 读取 self.path，结构建议 {user_id: [fact, ...]}，
-        返回 data.get(self.user_id, [])。
-        """
+        """从 JSON 文件读取本 user 的事实列表（文件不存在时返回 []）。"""
         data = self._read_all()
         facts = data.get(self.user_id, [])
         if not isinstance(facts, list):
@@ -82,10 +74,7 @@ class FileLongTermMemory(LongTermMemory):
         return [f.strip() for f in facts if isinstance(f, str) and f.strip()]
 
     def _save(self) -> None:
-        """把 self.facts 写回 JSON 文件（保留其它 user 的数据）。
-
-        TODO: 读出整体 dict，更新 self.user_id 对应项，写回文件。
-        """
+        """把 self.facts 写回 JSON 文件（保留其它 user 的数据）。"""
         dir_name = os.path.dirname(self.path)
         if dir_name:
             os.makedirs(dir_name, exist_ok=True)
@@ -112,10 +101,8 @@ class FileLongTermMemory(LongTermMemory):
     def remember(self, user_msg: str, reply: str) -> None:
         """从一轮对话中抽取值得长期记住的事实并落盘。
 
-        TODO:
-        1. 用 self._llm.chat() 让模型从对话中抽取"用户的稳定事实/偏好"，
-           没有则返回空。
-        2. 把新事实去重后加入 self.facts，调用 self._save()。
+        写入前会先处理用户的删除请求，再通过 LLM 抽取稳定事实，
+        并按主题清理冲突事实，避免长期记忆越存越乱。
         """
         if self._handle_forget_request(user_msg):
             return

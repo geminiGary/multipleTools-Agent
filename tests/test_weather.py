@@ -1,4 +1,4 @@
-"""工具单测的范例——学生为自己写的工具照此补测试。"""
+"""天气工具单元测试。"""
 from tools.weather import WeatherTool
 
 

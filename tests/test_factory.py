@@ -7,7 +7,7 @@ from memory.conversation_store import ConversationStore
 def test_baseline_capabilities():
     agent = build_agent("test-session")
     names = agent.registry.available_names()
-    # 基线：两个范例工具和已完成的 web_search 可用；未实现的工具被隐藏
+    # 基线：核心工具可用；知识库在未入库时保持隐藏
     assert "get_weather" in names
     assert "calculator" in names
     assert "web_search" in names

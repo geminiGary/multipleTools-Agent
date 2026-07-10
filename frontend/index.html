@@ -723,9 +723,9 @@
           { on: (cap.tools || []).length > 0, label: `工具 ·${(cap.tools || []).length}`,
             tip: (cap.tools || []).length ? `已启用：${cap.tools.join("、")}` : "尚无可用工具" },
           { on: !!cap.rag_enabled, label: "RAG",
-            tip: cap.rag_enabled ? "知识库检索已启用" : "未启用：RAG 是进阶可选项；实现 rag/ 三件套后，把 KnowledgeBaseTool.is_available() 改为按库非空判断" },
+            tip: cap.rag_enabled ? "知识库检索已启用" : "知识库尚未入库；请确认 data/docs 中存在 .md 或 .txt 文档并重启服务" },
           { on: !!cap.long_term_enabled, label: "记忆",
-            tip: cap.long_term_enabled ? "长期记忆已启用" : "未启用：完成任务 2（memory/long_term.py）后，把模块里的 ENABLED 改为 True" },
+            tip: cap.long_term_enabled ? "长期记忆已启用" : "长期记忆未启用；当前会话将仅保留短期上下文" },
         ]
       : [{ on: false, label: "未连接", tip: "无法连接后端，请检查右上角后端地址，并确认已运行 uvicorn server:app" }];
     el.caps.innerHTML = "";
@@ -827,7 +827,7 @@
       const r = await fetch(`${state.backend}/api/upload`, { method: "POST", body: fd });
       const data = await r.json();
       if (!r.ok) { toast(data.detail || "上传失败"); return; }
-      toast(data.chunks_indexed > 0 ? `已入库 ${data.chunks_indexed} 个文本块` : "已保存（RAG 未实现，暂未入库）");
+      toast(data.chunks_indexed > 0 ? `已入库 ${data.chunks_indexed} 个文本块` : "已保存；当前知识库暂未入库");
       refreshCapabilities();
     } catch { toast("上传失败：未连接到后端"); }
   }

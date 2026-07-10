@@ -1,8 +1,8 @@
-"""装配真实依赖，产出一个可用的 Agent。
+"""装配运行时依赖，产出一个可用的 Agent。
 
 优雅降级在此体现：
-- 所有工具都 register，但骨架工具 is_available()=False，对模型隐藏。
-- 长期记忆按 long_term.ENABLED 决定用学生实现还是 NoOp。
+- 所有工具都注册进 Registry，只有 is_available() 为 True 的工具会暴露给模型。
+- 长期记忆可按模块开关切换为文件持久化实现或 NoOp 实现。
 """
 from llm import LLMClient
 from agent import Agent

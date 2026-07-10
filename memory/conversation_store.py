@@ -1,7 +1,7 @@
-"""对话持久化（老师基础设施）：每条对话一个 JSON 文件落盘。
+"""对话持久化：每条对话一个 JSON 文件落盘。
 
 职责单一——只负责一条对话状态的存取，且只读写 ShortTermMemory 的公有属性
-（.history / .summary），因此 short_term.py 范例保持一行不动。
+（.history / .summary），避免和短期记忆内部实现强耦合。
 
 文件结构 data/conversations/<session_id>.json：
   {

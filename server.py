@@ -31,7 +31,7 @@ MAX_UPLOAD_BYTES = 1 * 1024 * 1024  # 1MB
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 启动时把 data/docs 下的种子文档入库；RAG 未实现时静默跳过（优雅降级）
+    # 启动时把 data/docs 下的种子文档入库；知识库依赖不可用时静默跳过（优雅降级）
     try:
         from rag.ingest import ingest_dir
         n = ingest_dir()

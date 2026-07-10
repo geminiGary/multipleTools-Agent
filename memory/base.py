@@ -2,7 +2,7 @@
 
 短期记忆和长期记忆是两种不同角色，接口分开：
 - 短期记忆见 short_term.py（维护对话历史）。
-- 长期记忆见此处接口；学生在 long_term.py 中实现，未实现时用 NoOp 兜底。
+- 长期记忆见此处接口；能力不可用时用 NoOp 兜底。
 """
 from abc import ABC, abstractmethod
 
@@ -25,7 +25,7 @@ class LongTermMemory(ABC):
 
 
 class NoOpLongTermMemory(LongTermMemory):
-    """长期记忆未实现时的默认实现：什么都不做，保证整体可运行。"""
+    """长期记忆不可用时的默认实现：什么都不做，保证整体可运行。"""
 
     def recall(self, query: str) -> list[str]:
         return []

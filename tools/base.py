@@ -1,4 +1,4 @@
-"""所有工具的统一接口。学生新增工具只需继承 Tool 并实现 run()。"""
+"""所有工具的统一接口。新增工具只需继承 Tool 并实现 run()。"""
 from abc import ABC, abstractmethod
 
 
@@ -13,7 +13,7 @@ class Tool(ABC):
         self.last_sources: list = []  # run() 可写入本轮引用来源（如 RAG 出处）
 
     def is_available(self) -> bool:
-        """是否启用。未实现的骨架工具返回 False，从而对模型隐藏（优雅降级）。"""
+        """是否启用。不可用工具返回 False，从而对模型隐藏（优雅降级）。"""
         return True
 
     @abstractmethod

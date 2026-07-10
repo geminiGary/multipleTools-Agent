@@ -16,7 +16,7 @@ env/
 data/memory_store.json
 data/conversations/
 
-# 学生通过 /api/upload 上传的文档不纳入版本控制（保留种子语料与占位）
+# 上传到知识库的运行期文档不纳入版本控制（保留示例语料与占位文件）
 data/docs/*
 !data/docs/.gitkeep
 !data/docs/知简-产品概览.md
@@ -26,7 +26,11 @@ data/docs/*
 
 # OS / editor
 .DS_Store
+*Zone.Identifier
 .idea/
 .vscode/
 
-实验报告.pdf
+# Local reports / private materials
+*.pdf
+private/
+local-artifacts/
